@@ -4,8 +4,6 @@ use std::mem::size_of;
 use futures_util::pin_mut;
 use tokio::stream::StreamExt;
 
-mod forza;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(232, size_of::<forza::Sled>());

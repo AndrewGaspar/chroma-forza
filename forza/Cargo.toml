@@ -1,0 +1,17 @@
+[package]
+name = "forza"
+version = "0.1.0"
+authors = ["Andrew Gaspar <andrew.gaspar@outlook.com>"]
+edition = "2018"
+
+[dependencies.tokio]
+version = "0.2"
+features = ["full"]
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[dependencies]
+async-stream = "0.2"
+futures-core = "0.3"

@@ -46,10 +46,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
+name = "chroma"
+version = "0.1.0"
+dependencies = [
+ "libloading",
+ "winapi 0.3.8",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
+
+[[package]]
+name = "forza"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "futures-core",
+ "serde",
+ "tokio",
+]
 
 [[package]]
 name = "fuchsia-zircon"
@@ -151,6 +169,15 @@ name = "libc"
 version = "0.2.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "99e85c08494b21a9054e7fe1374a732aeadaff3980b6990b94bfd3a70f690005"
+
+[[package]]
+name = "libloading"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c4f51b790f5bdb65acb4cc94bb81d7b2ee60348a5431ac1467d390b017600b0"
+dependencies = [
+ "winapi 0.3.8",
+]
 
 [[package]]
 name = "log"
@@ -415,10 +442,9 @@ dependencies = [
 name = "udp-test"
 version = "0.1.0"
 dependencies = [
- "async-stream",
- "futures-core",
+ "chroma",
+ "forza",
  "futures-util",
- "serde",
  "serde_json",
  "tokio",
 ]
