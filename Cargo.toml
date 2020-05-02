@@ -9,7 +9,7 @@ members = ["chroma", "forza"]
 
 [dependencies]
 futures-util = "0.3"
-serde_json = "1.0"
+rgb = "0.8"
 
 [dependencies.chroma]
 path = "./chroma"
