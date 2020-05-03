@@ -105,6 +105,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
 
+        let pct_rpm = (datagram.sled.current_engine_rpm - datagram.sled.engine_idle_rpm)
+            / (datagram.sled.engine_max_rpm - datagram.sled.engine_idle_rpm);
+        let column_height = 6.0;
+        let shade = column_height * pct_rpm;
+        // round down
+        let num_filled = shade as u8;
+        for row in 0..num_filled {
+            builder.set_position(
+                5 - row,
+                14,
+                RGB8 {
+                    r: 0xff,
+                    g: 0,
+                    b: 0,
+                },
+            );
+        }
+        builder.set_position(
+            5 - num_filled,
+            14,
+            RGB8 {
+                r: (256f32 * (shade % 1.0)) as u8,
+                g: 0,
+                b: 0,
+            },
+        );
+
         let position = datagram.dash.race_position;
         if position > 0 && position < 10 {
             let key = NUM_KEYS[position as usize - 1];
