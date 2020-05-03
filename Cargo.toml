@@ -1,5 +1,5 @@
 [package]
-name = "udp-test"
+name = "forza-chroma"
 version = "0.1.0"
 authors = ["Andrew Gaspar <andrew.gaspar@outlook.com>"]
 edition = "2018"
@@ -8,6 +8,8 @@ edition = "2018"
 members = ["chroma", "forza"]
 
 [dependencies]
+async-stream = "0.2"
+clap = "2.33"
 futures-util = "0.3"
 rgb = "0.8"
 

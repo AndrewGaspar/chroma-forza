@@ -111,6 +111,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "forza-chroma"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "chroma",
+ "clap",
+ "forza",
+ "futures-util",
+ "rgb",
+ "tokio",
+]
+
+[[package]]
 name = "fuchsia-zircon"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -504,17 +517,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "udp-test"
-version = "0.1.0"
-dependencies = [
- "chroma",
- "forza",
- "futures-util",
- "rgb",
- "tokio",
 ]
 
 [[package]]

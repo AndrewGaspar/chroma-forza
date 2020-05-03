@@ -1,7 +1,7 @@
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 
 #[repr(C)]
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Vector<T> {
     pub x: T,
     pub y: T,
@@ -9,7 +9,7 @@ pub struct Vector<T> {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Quad<T> {
     pub front_left: T,
     pub front_right: T,
@@ -18,7 +18,7 @@ pub struct Quad<T> {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Sled {
     pub is_race_on: i32,
     pub timestamp_ms: u32,
@@ -47,8 +47,9 @@ pub struct Sled {
     pub num_cylinders: i32,
 }
 
+/// This struct just exists to derive `Serialize` so that it can be forwarded to from `Dash`.
 #[repr(C)]
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize)]
 struct DashUnpacked {
     position: Vector<f32>,
     // m/s
@@ -78,7 +79,7 @@ struct DashUnpacked {
 }
 
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub struct Dash {
     pub position: Vector<f32>,
     // m/s
@@ -141,7 +142,7 @@ impl Serialize for Dash {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Horizon4Datagram {
     pub sled: Sled,
     // Unsure, but first byte is always decimal 40 (0x28)

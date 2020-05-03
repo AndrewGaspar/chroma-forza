@@ -1,10 +1,22 @@
-use std::env;
-use std::mem::size_of;
+#![recursion_limit = "256"]
+
+use tokio::prelude::*;
+
+use std::{
+    mem::{size_of_val, MaybeUninit},
+    pin::Pin,
+    process,
+};
 
 use chroma::{Key, KeyboardCustomKeyEffectBuilder};
+use clap::Arg;
+use forza::Horizon4Datagram;
 use futures_util::pin_mut;
 use rgb::RGB8;
-use tokio::stream::StreamExt;
+use tokio::{
+    stream::StreamExt,
+    time::{Duration, Instant},
+};
 
 const NUM_KEYS: [chroma::Key; 9] = [
     Key::Row1,
@@ -20,14 +32,65 @@ const NUM_KEYS: [chroma::Key; 9] = [
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    assert_eq!(232, size_of::<forza::Sled>());
-    assert_eq!(79, size_of::<forza::Dash>());
-    assert_eq!(324, size_of::<forza::Horizon4Datagram>());
+    let matches = clap::App::new("forza-chroma")
+        .arg(
+            Arg::with_name("local_addr")
+                .short("l")
+                .long("local-addr")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("recording")
+                .short("r")
+                .long("recording")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("format")
+                .short("f")
+                .long("format")
+                .possible_values(&["json", "raw"])
+                .default_value("raw"),
+        )
+        .get_matches();
 
-    let server_ip = env::args().skip(1).next().unwrap_or("0.0.0.0".to_string());
-    let server_addr = server_ip + ":8000";
+    let local_addr = matches.value_of("local_addr");
+    let recording = matches.value_of("recording");
 
-    let stream = forza::horizon4(server_addr).await?;
+    if local_addr.is_some() && recording.is_some() {
+        eprintln!("Error: You cannot specify a recording file and local-addr at the same time");
+        process::exit(1);
+    }
+
+    let stream: Pin<Box<dyn tokio::stream::Stream<Item = std::io::Result<Horizon4Datagram>>>> =
+        if let Some(recording) = recording {
+            let recording = tokio::fs::File::open(recording).await?;
+            let mut recording = Box::pin(io::BufReader::new(recording));
+            Box::pin(async_stream::try_stream! {
+                let start_time = Instant::now();
+                let mut start = None;
+                loop {
+                        let mut datagram = MaybeUninit::<Horizon4Datagram>::zeroed();
+                        let slice = unsafe { std::slice::from_raw_parts_mut(&mut datagram as *mut _ as *mut _, size_of_val(&datagram))};
+                        let read = recording.read_exact(slice).await?;
+                        if read < size_of_val(&datagram) {
+                            break;
+                        }
+                        let datagram = unsafe { datagram.assume_init() };
+                        if let Some((start_time, first_recorded_time)) = start.as_ref() {
+                            let since_first_time = Duration::from_millis(datagram.sled.timestamp_ms.wrapping_sub(*first_recorded_time) as u64);
+                            tokio::time::delay_until(*start_time + since_first_time).await;
+                        } else {
+                            start = Some((Instant::now(), datagram.sled.timestamp_ms));
+                        }
+                        yield datagram;
+                }
+            })
+        } else {
+            let local_addr = local_addr.unwrap_or("0.0.0.0:18733");
+            Box::pin(forza::horizon4(local_addr).await?)
+        };
+
     pin_mut!(stream);
     while let Some(Ok(datagram)) = stream.next().await {
         let mut builder = KeyboardCustomKeyEffectBuilder::new();
