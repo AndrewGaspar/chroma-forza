@@ -1,0 +1,21 @@
+[colors]
+red   = "ff0000"
+green = "00ff00"
+blue  = "0000ff"
+white = "ffffff"
+
+[[effect]]
+predefined = "position"
+numkeys = "pad"
+
+[[effect]]
+    [effect.input]
+    property = "rpm-baseline"
+
+    [effect.output]
+    type = "meter"
+    color = "red"
+
+    [effect.output.canvas]
+    column = 14
+    row = "5:0"

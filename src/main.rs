@@ -14,9 +14,12 @@ use forza::Horizon4Datagram;
 use futures_util::pin_mut;
 use rgb::RGB8;
 use tokio::{
+    fs::File,
     stream::StreamExt,
     time::{Duration, Instant},
 };
+
+mod config;
 
 const NUM_KEYS: [chroma::Key; 9] = [
     Key::Row1,
@@ -52,7 +55,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .possible_values(&["json", "raw"])
                 .default_value("raw"),
         )
+        .arg(
+            Arg::with_name("config")
+                .short("c")
+                .long("config")
+                .default_value("configs/default.toml"),
+        )
         .get_matches();
+
+    let mut config = String::new();
+    File::open(matches.value_of("config").unwrap())
+        .await?
+        .read_to_string(&mut config)
+        .await?;
+    let _config: config::Config = toml::from_str(&config)?;
 
     let local_addr = matches.value_of("local_addr");
     let recording = matches.value_of("recording");
