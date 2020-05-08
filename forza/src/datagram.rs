@@ -147,9 +147,9 @@ pub struct Horizon4Datagram {
     pub sled: Sled,
     // Unsure, but first byte is always decimal 40 (0x28)
     pub unknown1: [u8; 4],
-    // related to depub struction
+    // related to destruction
     pub unknown2: f32,
-    // related to depub struction
+    // related to destruction
     pub unknown3: f32,
     pub dash: Dash,
     pub unknown4: i8,

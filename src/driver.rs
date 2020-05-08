@@ -3,7 +3,7 @@ use std::{future::Future, time::Instant};
 use tokio::stream::{Stream, StreamExt};
 
 use crate::{
-    config::{Config, EffectData},
+    config::{Config, EffectData, EffectType},
     effects::{Effect, MeterEffect},
     property,
     state::{ChromaState, Tick},
@@ -22,10 +22,13 @@ impl Driver {
                 EffectData::Custom { input, output } => {
                     let property = property::query_rate_property(input);
 
-                    driver.add_effect(Effect::new(
-                        effect.altitude,
-                        Box::new(MeterEffect::new(property, output, &config.colors)),
-                    ));
+                    let implementation = match output.effect_type {
+                        EffectType::Meter { fill } => {
+                            Box::new(MeterEffect::new(property, output, fill, &config.colors))
+                        }
+                    };
+
+                    driver.add_effect(Effect::new(effect.altitude, implementation));
                 }
                 EffectData::Predefined { .. } => todo!(),
             }

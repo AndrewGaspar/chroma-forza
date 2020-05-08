@@ -21,12 +21,14 @@ pub struct MeterEffect {
     orientation: MeterOrientation,
     base: RangeInclusive<u8>,
     meter: RangeInclusive<u8>,
+    fill: bool,
 }
 
 impl MeterEffect {
     pub fn new(
         property: RateProperty,
         output: &config::Output,
+        fill: bool,
         colors: &HashMap<String, Color>,
     ) -> Self {
         let keyboard = output.keyboard.as_ref().unwrap();
@@ -64,6 +66,7 @@ impl MeterEffect {
             orientation,
             base,
             meter,
+            fill,
         }
     }
 }
@@ -121,13 +124,15 @@ impl<'a> EffectInstance for MeterEffectInstance<'a> {
                 }
             };
 
-            for position in 0..num_filled {
-                let (row, column) = match orientation {
-                    MeterOrientation::RowBase => (base, extent(position)),
-                    MeterOrientation::ColumnBase => (extent(position), base),
-                };
+            if self.effect.fill {
+                for position in 0..num_filled {
+                    let (row, column) = match orientation {
+                        MeterOrientation::RowBase => (base, extent(position)),
+                        MeterOrientation::ColumnBase => (extent(position), base),
+                    };
 
-                state.set_position(row, column, color);
+                    state.set_position(row, column, color);
+                }
             }
 
             // In case we manage to hit 100%...
@@ -137,12 +142,16 @@ impl<'a> EffectInstance for MeterEffectInstance<'a> {
                     MeterOrientation::ColumnBase => (extent(num_filled), base),
                 };
 
-                let color: rgb::RGB<f32> = color.into();
-                let color: rgb::RGB<f32> = color * (shade % 1.0);
-                let color = RGB8 {
-                    r: color.r as u8,
-                    g: color.g as u8,
-                    b: color.b as u8,
+                let color = if self.effect.fill {
+                    let color: rgb::RGB<f32> = color.into();
+                    let color: rgb::RGB<f32> = color * (shade % 1.0);
+                    RGB8 {
+                        r: color.r as u8,
+                        g: color.g as u8,
+                        b: color.b as u8,
+                    }
+                } else {
+                    color
                 };
 
                 state.set_position(row, column, color);

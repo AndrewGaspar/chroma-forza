@@ -80,10 +80,22 @@ pub struct Input {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Output {
-    pub r#type: String,
     #[serde(default = "white")]
     pub color: String,
     pub keyboard: Option<Keyboard>,
+    #[serde(flatten)]
+    #[serde(rename = "type")]
+    pub effect_type: EffectType,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum EffectType {
+    #[serde(rename = "meter")]
+    Meter {
+        #[serde(default)]
+        fill: bool,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -175,7 +187,11 @@ impl<'de> Deserialize<'de> for GridRange {
                     let right = u8::from_str_radix(&v[j..], 10).ok()?;
 
                     Some(match separator {
-                        Separator::Colon => GridRange::Range(if left < right { left..=right } else { right..=left }),
+                        Separator::Colon => GridRange::Range(if left < right {
+                            left..=right
+                        } else {
+                            right..=left
+                        }),
                         Separator::LeftArrow => GridRange::Direction(right..=left),
                         Separator::RightArrow => GridRange::Direction(left..=right),
                     })

@@ -52,6 +52,17 @@ fn rate_properties() -> HashMap<&'static str, RatePropertyQuery> {
                 max: Some(|datagram| datagram.sled.engine_max_rpm - datagram.sled.engine_idle_rpm),
             },
         ),
+        (
+            "driveline",
+            RatePropertyQuery {
+                current: |datagram| {
+                    let line = datagram.dash.normalized_driving_line as i16;
+                    let line = line + 127;
+                    line as f32
+                },
+                max: Some(|_| 255.0),
+            },
+        ),
     ])
 }
 
