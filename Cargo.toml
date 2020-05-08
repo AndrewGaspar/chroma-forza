@@ -10,7 +10,9 @@ members = ["chroma", "forza"]
 [dependencies]
 async-stream = "0.2"
 clap = "2.33"
+futures = "0.3"
 futures-util = "0.3"
+lazy_static = "1.4"
 rgb = "0.8"
 serde = "1.0"
 toml = "0.5"

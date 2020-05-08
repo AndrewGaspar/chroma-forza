@@ -7,7 +7,7 @@ use serde::{
     Deserialize, Deserializer,
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub colors: HashMap<String, Color>,
@@ -15,7 +15,7 @@ pub struct Config {
     pub effect: Vec<Effect>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Color(pub RGB8);
 
 impl<'de> Deserialize<'de> for Color {
@@ -49,14 +49,15 @@ impl<'de> Deserialize<'de> for Color {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Effect {
-    layer: Option<f32>,
+    #[serde(default)]
+    pub altitude: i32,
     #[serde(flatten)]
-    data: EffectData,
+    pub data: EffectData,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum EffectData {
     Custom {
@@ -69,29 +70,32 @@ pub enum EffectData {
     },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Input {
-    property: String,
+    pub property: String,
+    pub max_value: Option<f32>,
+    #[serde(default)]
+    pub auto_raise: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Output {
-    r#type: String,
+    pub r#type: String,
     #[serde(default = "white")]
-    color: String,
-    canvas: Canvas,
+    pub color: String,
+    pub keyboard: Option<Keyboard>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct Canvas {
-    column: GridRange,
-    row: GridRange,
+#[derive(Clone, Debug, Deserialize)]
+pub struct Keyboard {
+    pub column: GridRange,
+    pub row: GridRange,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum GridRange {
-    Scalar(u8),
     Range(RangeInclusive<u8>),
+    Direction(RangeInclusive<u8>),
     All,
 }
 
@@ -115,7 +119,8 @@ impl<'de> Deserialize<'de> for GridRange {
                 if !(0..(MAX_COLUMN as i64)).contains(&v) {
                     Err(E::custom(format!("value {} is out of range", v)))
                 } else {
-                    Ok(GridRange::Scalar(v as u8))
+                    let v = v as u8;
+                    Ok(GridRange::Range(v..=v))
                 }
             }
 
@@ -123,7 +128,8 @@ impl<'de> Deserialize<'de> for GridRange {
                 if !(0..(MAX_COLUMN as u64)).contains(&v) {
                     Err(E::custom(format!("value {} is out of range", v)))
                 } else {
-                    Ok(GridRange::Scalar(v as u8))
+                    let v = v as u8;
+                    Ok(GridRange::Range(v..=v))
                 }
             }
 
@@ -136,22 +142,47 @@ impl<'de> Deserialize<'de> for GridRange {
                 let result = (|| {
                     let mut chars = v.char_indices().skip_while(|(_, c)| c.is_numeric());
 
-                    let (i, from) = match chars.next() {
-                        Some((i, ':')) => (i + 1, u8::from_str_radix(&v[..i], 10).ok()?),
+                    enum Separator {
+                        Colon,
+                        LeftArrow,
+                        RightArrow,
+                    }
+
+                    let (i, j, separator) = match chars.next() {
+                        Some((i, ':')) => (i, i + 1, Separator::Colon),
+                        Some((i, '-')) => {
+                            if let Some((_, '>')) = chars.next() {
+                                (i, i + 2, Separator::RightArrow)
+                            } else {
+                                return None;
+                            }
+                        }
+                        Some((i, '<')) => {
+                            if let Some((_, '-')) = chars.next() {
+                                (i, i + 2, Separator::LeftArrow)
+                            } else {
+                                return None;
+                            }
+                        }
                         Some(_) => return None,
-                        None => return Some((u8::from_str_radix(&v, 10).ok()?, None)),
+                        None => {
+                            let v = u8::from_str_radix(&v, 10).ok()?;
+                            return Some(GridRange::Range(v..=v));
+                        }
                     };
 
-                    let to = u8::from_str_radix(&v[i..], 10).ok()?;
+                    let left = u8::from_str_radix(&v[..i], 10).ok()?;
+                    let right = u8::from_str_radix(&v[j..], 10).ok()?;
 
-                    Some((from, Some(to)))
+                    Some(match separator {
+                        Separator::Colon => GridRange::Range(if left < right { left..=right } else { right..=left }),
+                        Separator::LeftArrow => GridRange::Direction(right..=left),
+                        Separator::RightArrow => GridRange::Direction(left..=right),
+                    })
                 })();
 
-                if let Some((from, to)) = result {
-                    Ok(match to {
-                        Some(to) => GridRange::Range(RangeInclusive::new(from, to)),
-                        None => GridRange::Scalar(from),
-                    })
+                if let Some(result) = result {
+                    Ok(result)
                 } else {
                     Err(E::custom(
                         "Expected an integer or a range in the form of \"x:y\"",
@@ -165,11 +196,24 @@ impl<'de> Deserialize<'de> for GridRange {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "predefined")]
 pub enum PredefinedEffectData {
     #[serde(rename = "position")]
-    Position { numkeys: String },
+    Position(PositionEffectData),
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PositionEffectData {
+    pub numkeys: NumKeysSelector,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub enum NumKeysSelector {
+    #[serde(rename = "pad")]
+    Pad,
+    #[serde(rename = "row")]
+    Row,
 }
 
 fn white() -> String {

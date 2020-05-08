@@ -4,9 +4,9 @@ green = "00ff00"
 blue  = "0000ff"
 white = "ffffff"
 
-[[effect]]
-predefined = "position"
-numkeys = "pad"
+# [[effect]]
+# predefined = "position"
+# numkeys = "pad"
 
 [[effect]]
     [effect.input]
@@ -16,6 +16,19 @@ numkeys = "pad"
     type = "meter"
     color = "red"
 
-    [effect.output.canvas]
-    column = 14
-    row = "5:0"
+    [effect.output.keyboard]
+    column = "0->21"
+    row = "1:5"
+
+[[effect]]
+    [effect.input]
+    property = "speed"
+    auto_raise = true
+
+    [effect.output]
+    type = "meter"
+    color = "blue"
+
+    [effect.output.keyboard]
+    column = "0->17"
+    row = "0"
