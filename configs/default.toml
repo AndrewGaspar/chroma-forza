@@ -1,12 +1,9 @@
 [colors]
-red   = "ff0000"
-green = "00ff00"
-blue  = "0000ff"
-white = "ffffff"
-
-# [[effect]]
-# predefined = "position"
-# numkeys = "pad"
+red    = "ff0000"
+green  = "00ff00"
+blue   = "0000ff"
+purple = "ff00ff"
+white  = "ffffff"
 
 [[effect]]
     [effect.input]
@@ -46,3 +43,14 @@ white = "ffffff"
     [effect.output.keyboard]
     column = "0->17"
     row = "0"
+
+[[effect]]
+    [effect.input]
+    property = "position"
+
+    [effect.output]
+    type = "score"
+    color = "purple"
+
+    [effect.output.keyboard]
+    numkeys = "row"

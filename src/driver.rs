@@ -3,9 +3,9 @@ use std::{future::Future, time::Instant};
 use tokio::stream::{Stream, StreamExt};
 
 use crate::{
-    config::{Config, EffectData, EffectType},
-    effects::{Effect, MeterEffect},
-    property,
+    config::{Config, EffectType},
+    effects::{Effect, EffectImpl, MeterEffect, PositionEffect},
+    property::{self, Property},
     state::{ChromaState, Tick},
 };
 
@@ -18,20 +18,48 @@ impl Driver {
         let mut driver = Self { effects: vec![] };
 
         for effect in &config.effect {
-            match &effect.data {
-                EffectData::Custom { input, output } => {
-                    let property = property::query_rate_property(input);
+            let property = property::query_property(&effect.input);
 
-                    let implementation = match output.effect_type {
-                        EffectType::Meter { fill } => {
-                            Box::new(MeterEffect::new(property, output, fill, &config.colors))
-                        }
+            let implementation: Box<dyn EffectImpl> = match &effect.output.effect_type {
+                EffectType::Meter {
+                    config: meter_config,
+                } => {
+                    let rate_property = match property {
+                        Property::Rate(r) => r,
+                        _ => panic!(
+                            "Meter effect is not compatible with property '{}'",
+                            effect.input.property
+                        ),
                     };
 
-                    driver.add_effect(Effect::new(effect.altitude, implementation));
+                    Box::new(MeterEffect::new(
+                        rate_property,
+                        &effect.output,
+                        meter_config,
+                        &config.colors,
+                    ))
                 }
-                EffectData::Predefined { .. } => todo!(),
-            }
+                EffectType::Score {
+                    config: score_config,
+                } => {
+                    let score_property = match property {
+                        Property::Score(p) => p,
+                        _ => panic!(
+                            "Score effect is not compatible with property '{}'",
+                            effect.input.property
+                        ),
+                    };
+
+                    Box::new(PositionEffect::new(
+                        score_property,
+                        &effect.output,
+                        score_config,
+                        &config.colors,
+                    ))
+                }
+            };
+
+            driver.add_effect(Effect::new(effect.altitude, implementation));
         }
 
         driver

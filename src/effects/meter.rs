@@ -3,11 +3,10 @@ use std::{collections::HashMap, ops::RangeInclusive};
 use rgb::RGB8;
 
 use crate::{
-    config::{self, Color},
+    config::{self, Color, GridRange},
     effects::{EffectImpl, EffectInstance},
     property::RateProperty,
 };
-use config::GridRange;
 
 #[derive(Copy, Clone)]
 enum MeterOrientation {
@@ -28,10 +27,13 @@ impl MeterEffect {
     pub fn new(
         property: RateProperty,
         output: &config::Output,
-        fill: bool,
+        config: &config::MeterEffect,
         colors: &HashMap<String, Color>,
     ) -> Self {
-        let keyboard = output.keyboard.as_ref().unwrap();
+        let keyboard = config
+            .keyboard
+            .as_ref()
+            .expect("TODO: We shouldn't require a keyboard output for MeterEffect.");
 
         let color = colors[&output.color].0;
 
@@ -66,7 +68,7 @@ impl MeterEffect {
             orientation,
             base,
             meter,
-            fill,
+            fill: config.fill,
         }
     }
 }

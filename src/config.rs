@@ -53,21 +53,8 @@ impl<'de> Deserialize<'de> for Color {
 pub struct Effect {
     #[serde(default)]
     pub altitude: i32,
-    #[serde(flatten)]
-    pub data: EffectData,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(untagged)]
-pub enum EffectData {
-    Custom {
-        input: Input,
-        output: Output,
-    },
-    Predefined {
-        #[serde(flatten)]
-        data: PredefinedEffectData,
-    },
+    pub input: Input,
+    pub output: Output,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -82,7 +69,6 @@ pub struct Input {
 pub struct Output {
     #[serde(default = "white")]
     pub color: String,
-    pub keyboard: Option<Keyboard>,
     #[serde(flatten)]
     #[serde(rename = "type")]
     pub effect_type: EffectType,
@@ -93,15 +79,45 @@ pub struct Output {
 pub enum EffectType {
     #[serde(rename = "meter")]
     Meter {
-        #[serde(default)]
-        fill: bool,
+        #[serde(flatten)]
+        config: MeterEffect,
+    },
+    #[serde(rename = "score")]
+    Score {
+        #[serde(flatten)]
+        config: ScoreEffect,
     },
 }
 
 #[derive(Clone, Debug, Deserialize)]
-pub struct Keyboard {
+pub struct MeterEffect {
+    #[serde(default)]
+    pub fill: bool,
+    pub keyboard: Option<KeyboardMeter>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct KeyboardMeter {
     pub column: GridRange,
     pub row: GridRange,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ScoreEffect {
+    pub keyboard: Option<KeyboardScore>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct KeyboardScore {
+    pub numkeys: NumKeys,
+}
+
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub enum NumKeys {
+    #[serde(rename = "row")]
+    Row,
+    #[serde(rename = "pad")]
+    Pad,
 }
 
 #[derive(Clone, Debug)]
@@ -210,26 +226,6 @@ impl<'de> Deserialize<'de> for GridRange {
         let value = deserializer.deserialize_any(GridRangeVisitor)?;
         Ok(value)
     }
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(tag = "predefined")]
-pub enum PredefinedEffectData {
-    #[serde(rename = "position")]
-    Position(PositionEffectData),
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub struct PositionEffectData {
-    pub numkeys: NumKeysSelector,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-pub enum NumKeysSelector {
-    #[serde(rename = "pad")]
-    Pad,
-    #[serde(rename = "row")]
-    Row,
 }
 
 fn white() -> String {

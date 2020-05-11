@@ -4,8 +4,13 @@ use forza::Horizon4Datagram;
 
 use crate::config;
 
-pub fn query_rate_property(config: &config::Input) -> RateProperty {
-    let query = &RATE_PROPERTIES[&config.property[..]];
+pub enum Property {
+    Rate(RateProperty),
+    Score(ScoreProperty),
+}
+
+pub fn query_property(config: &config::Input) -> Property {
+    let query = &PROPERTIES[&config.property[..]];
 
     let max_value = if let Some(max) = config.max_value {
         Some(Cell::new(max))
@@ -15,55 +20,69 @@ pub fn query_rate_property(config: &config::Input) -> RateProperty {
         None
     };
 
-    RateProperty {
-        query,
-        max_value,
-        auto_raise: config.auto_raise,
+    match query {
+        PropertyQuery::Rate(query) => Property::Rate(RateProperty {
+            query,
+            max_value,
+            auto_raise: config.auto_raise,
+        }),
+        PropertyQuery::Score(query) => Property::Score(ScoreProperty { query }),
     }
 }
 
 lazy_static::lazy_static! {
-    static ref RATE_PROPERTIES: HashMap<&'static str, RatePropertyQuery>
-        = rate_properties();
+    static ref PROPERTIES: HashMap<&'static str, PropertyQuery>
+        = properties();
 }
 
-fn rate_properties() -> HashMap<&'static str, RatePropertyQuery> {
+fn properties() -> HashMap<&'static str, PropertyQuery> {
     HashMap::from_iter(vec![
         (
             "speed",
-            RatePropertyQuery {
+            PropertyQuery::Rate(RatePropertyQuery {
                 current: |datagram| datagram.dash.speed,
                 max: None,
-            },
+            }),
         ),
         (
             "rpm",
-            RatePropertyQuery {
+            PropertyQuery::Rate(RatePropertyQuery {
                 current: |datagram| datagram.sled.current_engine_rpm,
                 max: Some(|datagram| datagram.sled.engine_max_rpm),
-            },
+            }),
         ),
         (
             "rpm-baseline",
-            RatePropertyQuery {
+            PropertyQuery::Rate(RatePropertyQuery {
                 current: |datagram| {
                     datagram.sled.current_engine_rpm - datagram.sled.engine_idle_rpm
                 },
                 max: Some(|datagram| datagram.sled.engine_max_rpm - datagram.sled.engine_idle_rpm),
-            },
+            }),
         ),
         (
             "driveline",
-            RatePropertyQuery {
+            PropertyQuery::Rate(RatePropertyQuery {
                 current: |datagram| {
                     let line = datagram.dash.normalized_driving_line as i16;
                     let line = line + 127;
                     line as f32
                 },
                 max: Some(|_| 255.0),
-            },
+            }),
+        ),
+        (
+            "position",
+            PropertyQuery::Score(ScorePropertyQuery {
+                current: |datagram| (datagram.dash.race_position as i32) - 1,
+            }),
         ),
     ])
+}
+
+enum PropertyQuery {
+    Rate(RatePropertyQuery),
+    Score(ScorePropertyQuery),
 }
 
 struct RatePropertyQuery {
@@ -99,17 +118,16 @@ impl RateProperty {
     }
 }
 
-// trait RateProperty {
-//     fn read_value(&self, datagram: &Horizon4Datagram) -> f32;
-// }
+struct ScorePropertyQuery {
+    current: fn(&Horizon4Datagram) -> i32,
+}
 
-// struct ScalarRateProperty<F> {
-//     f: fn(&Horizon4Datagram) -> f32,
-//     max_value: Option<std::cell::Cell<f32>>,
-// }
+pub struct ScoreProperty {
+    query: &'static ScorePropertyQuery,
+}
 
-// impl ScalarRateProperty<F: Fn(&Horizon4Datagram) -> f32> {
-//     fn new(f: fn(&Horizon4Datagram) -> f32) -> Self {
-//         Self { f, max_value: None }
-//     }
-// }
+impl ScoreProperty {
+    pub fn query(&self, datagram: &Horizon4Datagram) -> i32 {
+        (self.query.current)(datagram)
+    }
+}
